@@ -1,0 +1,77 @@
+﻿@page "/todos"
+
+<PageTitle>Todo List</PageTitle>
+
+<h1>Todo List</h1>
+
+<div class="d-flex flex-row mb-3">
+    <div class="">
+        <input type="text" class="form-control" id="title" placeholder="do the dishes" @bind-value=@newTodo.Title />
+    </div>
+    <div class="">
+        <button type="button" class="btn btn-primary" disabled=@submittingNewTodoItem @onclick=AddTodoItem>
+            Add item
+        </button>
+    </div>
+</div>
+
+@if (todos == null)
+{
+    <div class="spinner-border" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+}
+else
+{
+    <ul class="list-group">
+        @foreach (var todo in todos)
+        {
+            <li class="list-group-item">
+                <input class="form-check-input me-1" type="checkbox" value="@todo.Completed" id="@todo.Title">
+                <label class="form-check-label stretched-link" for="@todo.Title">@todo.Title</label>
+            </li>
+        }
+    </ul>
+}
+
+@inject HttpClient httpClient
+@code {
+    private List<TodoItem>? todos;
+    private TodoItem newTodo = new();
+    bool submittingNewTodoItem = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // fetch the todo list when we first load the page
+            todos = await httpClient.GetFromJsonAsync<List<TodoItem>>("todos");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+        }
+    }
+
+    private async void AddTodoItem()
+    {
+        try
+        {
+            submittingNewTodoItem = true;
+            StateHasChanged();
+
+            // add the item via the api
+            await httpClient.PostAsJsonAsync<TodoItem>("todos", newTodo);
+
+            // update the local todo list
+            todos!.Add(newTodo);
+            newTodo = new();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+        }
+        submittingNewTodoItem = false;
+        StateHasChanged();
+    }
+}
